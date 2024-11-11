@@ -10,7 +10,7 @@ const Lobby: NextPage = () => {
 
     const { createGame, loading } = useCreateGame({
         onCreated: (roomId: string) => {
-            router.push(`/pong/${roomId}`)
+            router.push(`/pong/game/${roomId}`)
         }
     })
 

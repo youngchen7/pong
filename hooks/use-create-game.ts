@@ -24,7 +24,6 @@ export function useCreateGame({ onCreated, onError }: { onCreated: (id: string) 
             onCreated(roomId)
         }
 
-
         setLoading(false)
     }, [])
     return { createGame, loading }

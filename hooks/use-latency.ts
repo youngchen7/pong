@@ -1,15 +1,29 @@
 import { REALTIME_SUBSCRIBE_STATES, RealtimeChannel } from "@supabase/supabase-js"
 import supabaseClient from "../client"
-import { useEffect, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 import { useUser } from "./use-user"
 
 export function useLatency() {
 
     const { user } = useUser()
     const [latency, setLatency] = useState<number>(0)
+    const [enabled, setEnabled] = useState(true)
 
     // Ping channel is used to calculate roundtrip time from client to server to client
     let pingChannel: RealtimeChannel
+
+    const onFocus = useCallback(() => setEnabled(true), [setEnabled])
+    const onBlur = useCallback(() => setEnabled(false), [setEnabled])
+
+    useEffect(() => {
+        window.addEventListener("focus", onFocus);
+        window.addEventListener("blur", onBlur);
+        // Specify how to clean up after this effect:
+        return () => {
+            window.removeEventListener("focus", onFocus);
+            window.removeEventListener("blur", onBlur);
+        };
+    }, []);
 
     useEffect(() => {
         if (!user) return
@@ -24,7 +38,8 @@ export function useLatency() {
         pingChannel.subscribe((status: `${REALTIME_SUBSCRIBE_STATES}`) => {
             if (status === REALTIME_SUBSCRIBE_STATES.SUBSCRIBED) {
                 pingIntervalId = setInterval(async () => {
-                    console.log('ping')
+                    if (!enabled) return
+
                     const start = performance.now()
                     const resp = await pingChannel.send({
                         type: 'broadcast',
@@ -46,11 +61,10 @@ export function useLatency() {
         })
 
         return () => {
-            console.log('remove ping')
             pingIntervalId && clearInterval(pingIntervalId)
             pingChannel && supabaseClient.removeChannel(pingChannel)
         }
-    }, [user])
+    }, [user, enabled])
 
     return latency.toFixed(1)
 

@@ -11,9 +11,9 @@ import {
   RealtimeChannelSendResponse,
 } from '@supabase/supabase-js'
 
-import supabaseClient from '../../client'
+import supabaseClient from '../../../client'
 
-import Loader from '../../components/Loader'
+import Loader from '../../../components/Loader'
 
 type Player = {
   name: string, playerType: PlayerType, user_id: string
