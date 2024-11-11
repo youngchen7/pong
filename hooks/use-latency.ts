@@ -1,22 +1,22 @@
 import { REALTIME_SUBSCRIBE_STATES, RealtimeChannel } from "@supabase/supabase-js"
-import { useUserId } from "./use-user-id"
 import supabaseClient from "../client"
 import { useEffect, useState } from "react"
+import { useUser } from "./use-user"
 
 export function useLatency() {
 
-    const [userId] = useUserId()
+    const { user } = useUser()
     const [latency, setLatency] = useState<number>(0)
 
     // Ping channel is used to calculate roundtrip time from client to server to client
     let pingChannel: RealtimeChannel
 
     useEffect(() => {
-        console.log('init ping')
+        if (!user) return
 
         let pingIntervalId: ReturnType<typeof setInterval> | undefined
 
-        pingChannel = supabaseClient.channel(`ping:${userId}`, {
+        pingChannel = supabaseClient.channel(`ping:${user.id}`, {
             config: { broadcast: { ack: true } },
         })
 
@@ -50,7 +50,7 @@ export function useLatency() {
             pingIntervalId && clearInterval(pingIntervalId)
             pingChannel && supabaseClient.removeChannel(pingChannel)
         }
-    }, [])
+    }, [user])
 
     return latency.toFixed(1)
 

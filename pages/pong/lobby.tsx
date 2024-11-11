@@ -1,9 +1,9 @@
 import { NextPage } from "next";
-import { useUserId } from "../../hooks/use-user-id";
-import { Badge, Button } from "@supabase/ui";
+import { Badge, Button, Loading } from "@supabase/ui";
 import { useLatency } from "../../hooks/use-latency";
 import { useRouter } from "next/router";
 import { useCreateGame } from "../../hooks/use-create-game";
+import { useUser } from "../../hooks/use-user";
 
 const Lobby: NextPage = () => {
     const router = useRouter()
@@ -14,7 +14,7 @@ const Lobby: NextPage = () => {
         }
     })
 
-    const [userId, resetUserId] = useUserId()
+    const { user, signOut } = useUser()
     const latency = useLatency()
 
     return (
@@ -35,11 +35,17 @@ const Lobby: NextPage = () => {
             />
             <div className='flex flex-col flex-col-2 items-center gap-4 w-fit'>
                 <h1 className="text-white text-6xl">PONG</h1>
-                <Button block type='primary' size='xlarge' onClick={() => createGame(userId)} loading={loading}>Create</Button>
-                <Button block type='default' size='xlarge'>Join</Button>
+                {
+                    user ? <>
+                        <Button block type='primary' size='xlarge' onClick={() => createGame(user.id)} loading={loading}>Create</Button>
+                        <Button block type='default' size='xlarge'>Join</Button>
+                    </>
+                        :
+                        <Loading active>Loading...</Loading>
+                }
             </div>
-            <div className='absolute right-0 bottom-0 p-2' onDoubleClick={resetUserId}>
-                <Badge color="gray">{latency}ms // {userId}</Badge>
+            <div className='absolute right-0 bottom-0 p-2' onDoubleClick={signOut}>
+                <Badge color="gray">{latency}ms // {user?.id}</Badge>
             </div>
         </div>
     )
