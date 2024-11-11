@@ -7,7 +7,7 @@ function MyApp({ Component, pageProps }: AppProps) {
   return (
     <>
       <Head>
-        <title>Realtime | Supabase</title>
+        <title>Pong | Supabase</title>
         <link rel="icon" href="/favicon.ico" />
         <meta name="description" content="Presence and ephemeral state, by Supabase" />
 
