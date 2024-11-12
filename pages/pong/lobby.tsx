@@ -1,10 +1,11 @@
 import { NextPage } from "next";
-import { Badge, Button, Input, Loading, Modal } from "@supabase/ui";
+import { Button, Input, Loading, Modal } from "@supabase/ui";
 import { useLatency } from "../../hooks/use-latency";
 import { useRouter } from "next/router";
 import { useCreateGame } from "../../hooks/use-create-game";
 import { useUser } from "../../hooks/use-user";
 import { useState } from "react";
+import LatencyBadge from "../../components/LatencyBadge";
 
 const Lobby: NextPage = () => {
   const router = useRouter();
@@ -15,8 +16,7 @@ const Lobby: NextPage = () => {
   });
   const [joinOpen, setJoinOpen] = useState(false);
   const [joinInput, setJoinInput] = useState("");
-  const { user, signOut } = useUser();
-  const latency = useLatency();
+  const { user } = useUser();
 
   return (
     <div
@@ -70,9 +70,7 @@ const Lobby: NextPage = () => {
           <Loading active>{""}</Loading>
         )}
       </div>
-      <div className="absolute right-0 bottom-0 p-2" onDoubleClick={signOut}>
-        <Badge color="gray">{`${latency}ms // ${user?.id ?? ""}`}</Badge>
-      </div>
+      <LatencyBadge />
     </div>
   );
 };

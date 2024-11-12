@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import type { NextPage } from "next";
 import { useRouter } from "next/router";
 import { nanoid } from "nanoid";
-import { Badge, IconUser, Input } from "@supabase/ui";
+import { Badge, Button, Icon, IconArrowLeft, IconCopy, IconSkipBack, IconUser, Input } from "@supabase/ui";
 import {
   REALTIME_LISTEN_TYPES,
   REALTIME_PRESENCE_LISTEN_EVENTS,
@@ -15,6 +15,8 @@ import supabaseClient from "../../../client";
 
 import Loader from "../../../components/Loader";
 import { useLatency } from "../../../hooks/use-latency";
+import LatencyBadge from "../../../components/LatencyBadge";
+import { useGame } from "../../../hooks/use-game";
 
 type Player = {
   name: string;
@@ -39,7 +41,6 @@ const Room: NextPage = () => {
 
   let roomChannelRef = useRef<RealtimeChannel>();
 
-  const latency = useLatency();
   const [name, _setName] = useState("Guest");
   const [playerType, setPlayerType] = useState(PlayerType.PLAYER);
   const [players, setPlayers] = useState<Player[]>([]);
@@ -47,6 +48,7 @@ const Room: NextPage = () => {
   const ready = router.isReady;
   const { slug } = router.query;
   const roomId = Array.isArray(slug) ? slug[0] : undefined;
+  const game = useGame({ roomId });
 
   const setName = (name: string) => {
     _setName(name);
@@ -120,7 +122,6 @@ const Room: NextPage = () => {
       />
       <div className="flex flex-col h-full justify-end">
         <div className="flex items-end justify-between">
-          <Badge>{`Latency: ${latency}ms`}</Badge>
           <div className="flex flex-col space-y-2">
             {players
               .filter((p) => p.user_id !== userId)
@@ -146,6 +147,30 @@ const Room: NextPage = () => {
           </div>
         </div>
       </div>
+      <div className="absolute top-5 right-5">
+        <Button
+          className="absolute top-0 left-0"
+          icon={
+            <IconCopy
+              strokeWidth={2}
+              size={18}
+              onClick={() => {
+                navigator.clipboard.writeText(roomId);
+              }}
+            />
+          }
+        >
+          {roomId}
+        </Button>
+      </div>
+      <div className="absolute top-5 left-5">
+        <Button
+          className="absolute top-0 left-0"
+          icon={<IconArrowLeft strokeWidth={2} size={18} />}
+          onClick={() => router.push("/pong/lobby")}
+        />
+      </div>
+      <LatencyBadge />
     </div>
   );
 };

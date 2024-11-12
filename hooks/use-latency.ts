@@ -66,6 +66,6 @@ export function useLatency() {
         }
     }, [user, enabled])
 
-    return latency.toFixed(1)
+    return latency
 
 }
