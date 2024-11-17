@@ -1,6 +1,12 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import supabaseClient from "../client";
 import { useUser } from "./use-user";
+import {
+  REALTIME_LISTEN_TYPES,
+  REALTIME_POSTGRES_CHANGES_LISTEN_EVENT,
+  RealtimeChannel,
+  RealtimePostgresUpdatePayload,
+} from "@supabase/supabase-js";
 
 type Game =
   | {
@@ -8,15 +14,13 @@ type Game =
       success: true;
       loading: false;
       error: false;
-      isHost: boolean;
-      isPlayer: boolean;
-      isSpectator: boolean;
+      hostId: string;
+      playerId: string | null;
       state?: "ready" | "playing" | "paused";
       // Functions
       start: () => void;
       pause: () => void;
-      selectPlayer: (userId: string) => void;
-      // Callbacks
+      setPlayer: (userId: string) => void;
     }
   | {
       success: false;
@@ -38,7 +42,7 @@ type GameDataRow = {
   state: "ready" | "playing" | "paused";
 };
 
-const loadGame = async ({
+const loadGameRow = async ({
   roomId,
   onSuccess,
   onError,
@@ -60,6 +64,31 @@ const loadGame = async ({
   }
 };
 
+const updateGameRow = async ({
+  roomId,
+  playerId,
+  state,
+  onSuccess,
+  onError,
+}: {
+  roomId: string;
+  playerId?: string;
+  state?: "ready" | "playing" | "paused";
+  onSuccess: (data: GameDataRow) => void;
+  onError?: () => void;
+}) => {
+  const data = await supabaseClient
+    .from("game")
+    .update({ player_id: playerId, state })
+    .eq("room_id", roomId)
+    .select();
+  if (data.error) {
+    onError?.();
+  } else {
+    onSuccess(data.data[0]);
+  }
+};
+
 type Params = {
   roomId?: string;
 };
@@ -72,7 +101,7 @@ export function useGame({ roomId }: Params): Game {
   useEffect(() => {
     if (!roomId) return;
 
-    loadGame({
+    loadGameRow({
       roomId,
       onSuccess: (data) => {
         console.log(data);
@@ -82,6 +111,30 @@ export function useGame({ roomId }: Params): Game {
         setError(true);
       },
     });
+  }, [roomId]);
+
+  // Listen to changes to the game row in the database.
+  let gameChannel: RealtimeChannel;
+  useEffect(() => {
+    if (!roomId) return;
+    const gameChannel = supabaseClient
+      .channel(`pong_game:${roomId}`)
+      .on(
+        REALTIME_LISTEN_TYPES.POSTGRES_CHANGES,
+        {
+          event: REALTIME_POSTGRES_CHANGES_LISTEN_EVENT.UPDATE,
+          schema: "public",
+          table: "game",
+          filter: `room_id=eq.${roomId}`,
+        },
+        (payload: RealtimePostgresUpdatePayload<GameDataRow>) => {
+          setGame(payload.new);
+        }
+      )
+      .subscribe();
+    return () => {
+      gameChannel && supabaseClient.removeChannel(gameChannel);
+    };
   }, [roomId]);
 
   if (!user || !game) {
@@ -105,12 +158,50 @@ export function useGame({ roomId }: Params): Game {
     success: true,
     loading: false,
     error: false,
-    isHost: game.host_id === user.id,
-    isPlayer: game.player_id === user.id,
-    isSpectator: game.host_id !== user.id && game.player_id !== user.id,
+    hostId: game.host_id,
+    playerId: game.player_id,
     state: game.state,
-    start: () => {},
-    pause: () => {},
-    selectPlayer: () => {},
+    start: () => {
+      if (!game) return;
+      console.log("Starting game");
+      updateGameRow({
+        roomId: game.room_id,
+        state: "playing",
+        onSuccess: (data) => {
+          setGame(data);
+        },
+        onError: () => {
+          setError(true);
+        },
+      });
+    },
+    pause: () => {
+      if (!game) return;
+      console.log("Pausing game");
+      updateGameRow({
+        roomId: game.room_id,
+        state: "paused",
+        onSuccess: (data) => {
+          setGame(data);
+        },
+        onError: () => {
+          setError(true);
+        },
+      });
+    },
+    setPlayer: (userId: string) => {
+      if (!game) return;
+      console.log(`Setting player 2 to: ${userId}`);
+      updateGameRow({
+        roomId: game.room_id,
+        playerId: userId,
+        onSuccess: (data) => {
+          setGame(data);
+        },
+        onError: () => {
+          setError(true);
+        },
+      });
+    },
   };
 }

@@ -17,8 +17,7 @@ const Room: NextPage = () => {
   const [name, _setName] = useState("Guest");
 
   const { user } = useUser();
-  const game = useGame({ roomId });
-  const { players, setPlayerName } = usePlayers({ roomId });
+  const { players, setPlayerName } = usePlayers({ roomId, name });
   const ourPlayer = players.find((p) => p.user_id === user?.id);
 
   const setName = (name: string) => {
@@ -52,16 +51,15 @@ const Room: NextPage = () => {
             {players
               .filter((p) => p.user_id !== user?.id)
               .map((p) => (
-                <>
-                  <Input
-                    disabled
-                    className="border-none"
-                    actions={<Badge color={p.playerType === PlayerType.HOST ? "red" : "green"}>{p.playerType}</Badge>}
-                    size="tiny"
-                    icon={<IconUser size={12} />}
-                    value={p.name.length ? p.name : "Guest"}
-                  />
-                </>
+                <Input
+                  key={p.user_id}
+                  disabled
+                  className="border-none"
+                  actions={<Badge color={p.playerType === PlayerType.HOST ? "red" : "green"}>{p.playerType}</Badge>}
+                  size="tiny"
+                  icon={<IconUser size={12} />}
+                  value={p.name.length ? p.name : "Guest"}
+                />
               ))}
             <Input
               actions={

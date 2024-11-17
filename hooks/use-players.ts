@@ -27,10 +27,11 @@ export const enum PlayerType {
 }
 
 type Params = {
+  name: string;
   roomId?: string;
 };
 
-export function usePlayers({ roomId }: Params) {
+export function usePlayers({ roomId, name }: Params) {
   const router = useRouter();
 
   const [players, setPlayers] = useState<Player[]>([]);
@@ -39,12 +40,12 @@ export function usePlayers({ roomId }: Params) {
   const game = useGame({ roomId });
 
   let playerType: PlayerType | undefined;
-  if (game.success) {
-    if (game.isHost) {
+  if (game.success && user) {
+    if (game.hostId === user.id) {
       playerType = PlayerType.HOST;
-    } else if (game.isPlayer) {
+    } else if (game.playerId === user.id) {
       playerType = PlayerType.PLAYER;
-    } else if (game.isSpectator) {
+    } else {
       playerType = PlayerType.SPECTATOR;
     }
   }
@@ -52,39 +53,37 @@ export function usePlayers({ roomId }: Params) {
   useEffect(() => {
     if (!roomId || !user || !router.isReady) return;
 
-    let roomChannel: RealtimeChannel;
-
-    roomChannel = supabaseClient.channel(`pong:${roomId}`, {
-      config: { presence: { key: user.id } },
-    });
-    roomChannel.on(
-      REALTIME_LISTEN_TYPES.PRESENCE,
-      { event: REALTIME_PRESENCE_LISTEN_EVENTS.SYNC },
-      () => {
-        const state = roomChannel.presenceState();
-        console.log("sync:" + JSON.stringify(state, undefined, 4));
-        setPlayers(
-          Object.values(state).map(([player]) => player as unknown as Player)
-        );
-      }
-    );
-
-    roomChannel.subscribe(async (status: `${REALTIME_SUBSCRIBE_STATES}`) => {
-      if (status === REALTIME_SUBSCRIBE_STATES.SUBSCRIBED) {
-        const resp: RealtimeChannelSendResponse = await roomChannel.track({
-          user_id: user.id,
-          name,
-          playerType,
-        });
-
-        if (resp === "ok") {
-          console.log("Subscribed");
-          roomChannelRef.current = roomChannel;
-        } else {
-          router.push(`/pong`);
+    const roomChannel = supabaseClient
+      .channel(`pong-players:${roomId}`, {
+        config: { presence: { key: user.id } },
+      })
+      .on(
+        REALTIME_LISTEN_TYPES.PRESENCE,
+        { event: REALTIME_PRESENCE_LISTEN_EVENTS.SYNC },
+        () => {
+          const state = roomChannel.presenceState();
+          console.log("sync:" + JSON.stringify(state, undefined, 4));
+          setPlayers(
+            Object.values(state).map(([player]) => player as unknown as Player)
+          );
         }
-      }
-    });
+      )
+      .subscribe(async (status: `${REALTIME_SUBSCRIBE_STATES}`) => {
+        if (status === REALTIME_SUBSCRIBE_STATES.SUBSCRIBED) {
+          const resp: RealtimeChannelSendResponse = await roomChannel.track({
+            user_id: user.id,
+            name,
+            playerType,
+          });
+
+          if (resp === "ok") {
+            console.log("Subscribed");
+            roomChannelRef.current = roomChannel;
+          } else {
+            router.push(`/pong/lobby`);
+          }
+        }
+      });
 
     // Must properly remove subscribed channel
     return () => {
@@ -93,7 +92,23 @@ export function usePlayers({ roomId }: Params) {
     };
 
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, roomId, setPlayers]);
+  }, [user, roomId, setPlayers, playerType]);
+
+  // Auto-select player two any time the list of players changes
+  // and nobody is the player
+  useEffect(() => {
+    // If the game hasn't loaded successfully, or we have less than two players.
+    // There's no point trying to select a player two.
+    if (!user || !game.success || players.length < 2) return;
+
+    // Not allowed to update game if you're not the host.
+    if (user.id !== game.hostId) return;
+
+    const otherPlayers = players.filter((p) => p.user_id !== user.id);
+    if (otherPlayers.every((p) => p.user_id !== game.playerId)) {
+      game.setPlayer(otherPlayers[0].user_id);
+    }
+  }, [user, game, players]);
 
   return {
     players,
