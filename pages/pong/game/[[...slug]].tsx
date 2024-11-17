@@ -8,6 +8,7 @@ import LatencyBadge from "../../../components/LatencyBadge";
 import { useGame } from "../../../hooks/use-game";
 import { PlayerType, usePlayers } from "../../../hooks/use-players";
 import { useUser } from "../../../hooks/use-user";
+import Pong from "../../../components/pong/Pong";
 
 const Room: NextPage = () => {
   const router = useRouter();
@@ -32,7 +33,7 @@ const Room: NextPage = () => {
   return (
     <div
       className={[
-        "h-screen w-screen p-4 flex flex-col justify-between relative",
+        "h-screen w-screen p-4 flex flex-col justify-center items-center relative",
         "max-h-screen max-w-screen overflow-hidden",
       ].join(" ")}
     >
@@ -45,7 +46,8 @@ const Room: NextPage = () => {
             "linear-gradient(to right, gray 1px, transparent 1px),\n    linear-gradient(to bottom, gray 1px, transparent 1px)",
         }}
       />
-      <div className="flex flex-col h-full justify-end">
+      <Pong />
+      <div className="absolute bottom-5 left-5">
         <div className="flex items-end justify-between">
           <div className="flex flex-col space-y-2">
             {players
