@@ -1,6 +1,5 @@
 import { NextPage } from "next";
 import { Button, Input, Loading, Modal } from "@supabase/ui";
-import { useLatency } from "../../hooks/use-latency";
 import { useRouter } from "next/router";
 import { useCreateGame } from "../../hooks/use-create-game";
 import { useUser } from "../../hooks/use-user";

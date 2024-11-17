@@ -1,17 +1,13 @@
 import { useState } from "react";
 import type { NextPage } from "next";
 import { useRouter } from "next/router";
-import { nanoid } from "nanoid";
-import { Badge, Button, IconArrowLeft, IconCopy, IconUser, Input } from "@supabase/ui";
+import { Button, Badge, IconArrowLeft, IconCopy, IconUser, Input } from "@supabase/ui";
 
 import Loader from "../../../components/Loader";
 import LatencyBadge from "../../../components/LatencyBadge";
 import { useGame } from "../../../hooks/use-game";
 import { PlayerType, usePlayers } from "../../../hooks/use-players";
 import { useUser } from "../../../hooks/use-user";
-
-// Generate a random user id
-const userId = nanoid();
 
 const Room: NextPage = () => {
   const router = useRouter();
@@ -54,7 +50,7 @@ const Room: NextPage = () => {
         <div className="flex items-end justify-between">
           <div className="flex flex-col space-y-2">
             {players
-              .filter((p) => p.user_id !== userId)
+              .filter((p) => p.user_id !== user?.id)
               .map((p) => (
                 <>
                   <Input
@@ -63,7 +59,7 @@ const Room: NextPage = () => {
                     actions={<Badge color={p.playerType === PlayerType.HOST ? "red" : "green"}>{p.playerType}</Badge>}
                     size="tiny"
                     icon={<IconUser size={12} />}
-                    value={p.name}
+                    value={p.name.length ? p.name : "Guest"}
                   />
                 </>
               ))}
