@@ -5,6 +5,7 @@ import { useUser } from "./use-user";
 type Game =
   | {
       // State
+      success: true;
       loading: false;
       error: false;
       isHost: boolean;
@@ -18,15 +19,17 @@ type Game =
       // Callbacks
     }
   | {
+      success: false;
       loading: true;
       error: boolean;
     }
   | {
+      success: false;
       loading: boolean;
       error: true;
     };
 
-type GameData = {
+type GameDataRow = {
   id: number;
   created_at: Date;
   room_id: string;
@@ -41,7 +44,7 @@ const loadGame = async ({
   onError,
 }: {
   roomId: string;
-  onSuccess: (data: GameData) => void;
+  onSuccess: (data: GameDataRow) => void;
   onError?: () => void;
 }) => {
   const data = await supabaseClient
@@ -63,7 +66,7 @@ type Params = {
 
 export function useGame({ roomId }: Params): Game {
   const { user } = useUser();
-  const [game, setGame] = useState<GameData>();
+  const [game, setGame] = useState<GameDataRow>();
   const [error, setError] = useState(false);
 
   useEffect(() => {
@@ -83,19 +86,23 @@ export function useGame({ roomId }: Params): Game {
 
   if (!user || !game) {
     return {
+      success: false,
       loading: true,
       error,
     };
   }
 
   if (error) {
+    console.log("Error loading game", error);
     return {
+      success: false,
       loading: !!user && !!game,
       error: true,
     };
   }
 
   return {
+    success: true,
     loading: false,
     error: false,
     isHost: game.host_id === user.id,

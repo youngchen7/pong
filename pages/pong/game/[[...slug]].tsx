@@ -1,106 +1,36 @@
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import type { NextPage } from "next";
 import { useRouter } from "next/router";
 import { nanoid } from "nanoid";
-import { Badge, Button, Icon, IconArrowLeft, IconCopy, IconSkipBack, IconUser, Input } from "@supabase/ui";
-import {
-  REALTIME_LISTEN_TYPES,
-  REALTIME_PRESENCE_LISTEN_EVENTS,
-  REALTIME_SUBSCRIBE_STATES,
-  RealtimeChannel,
-  RealtimeChannelSendResponse,
-} from "@supabase/supabase-js";
-
-import supabaseClient from "../../../client";
+import { Badge, Button, IconArrowLeft, IconCopy, IconUser, Input } from "@supabase/ui";
 
 import Loader from "../../../components/Loader";
-import { useLatency } from "../../../hooks/use-latency";
 import LatencyBadge from "../../../components/LatencyBadge";
 import { useGame } from "../../../hooks/use-game";
-
-type Player = {
-  name: string;
-  playerType: PlayerType;
-  user_id: string;
-};
-
-const enum PlayerType {
-  // Player One
-  HOST = "Host",
-  // Player Two
-  PLAYER = "Player",
-  // Ignore
-  SPECTATOR = "Spectator",
-}
+import { PlayerType, usePlayers } from "../../../hooks/use-players";
+import { useUser } from "../../../hooks/use-user";
 
 // Generate a random user id
 const userId = nanoid();
 
 const Room: NextPage = () => {
   const router = useRouter();
-
-  let roomChannelRef = useRef<RealtimeChannel>();
-
-  const [name, _setName] = useState("Guest");
-  const [playerType, setPlayerType] = useState(PlayerType.PLAYER);
-  const [players, setPlayers] = useState<Player[]>([]);
-
-  const ready = router.isReady;
   const { slug } = router.query;
   const roomId = Array.isArray(slug) ? slug[0] : undefined;
+
+  const [name, _setName] = useState("Guest");
+
+  const { user } = useUser();
   const game = useGame({ roomId });
+  const { players, setPlayerName } = usePlayers({ roomId });
+  const ourPlayer = players.find((p) => p.user_id === user?.id);
 
   const setName = (name: string) => {
     _setName(name);
-    if (roomChannelRef.current) {
-      void roomChannelRef.current.track({ user_id: userId, name, playerType });
-    }
+    setPlayerName(name);
   };
 
-  useEffect(() => {
-    if (!ready) return;
-
-    let roomChannel: RealtimeChannel;
-
-    console.log(slug);
-
-    if (!roomId) {
-      const newRoomId = nanoid();
-      console.log(`No room. Creating ${newRoomId}`);
-      router.push(`/pong/${newRoomId}`);
-      setPlayerType(PlayerType.HOST);
-    } else {
-      roomChannel = supabaseClient.channel(`pong:${roomId}`, { config: { presence: { key: userId } } });
-      roomChannel.on(REALTIME_LISTEN_TYPES.PRESENCE, { event: REALTIME_PRESENCE_LISTEN_EVENTS.SYNC }, () => {
-        const state = roomChannel.presenceState();
-        console.log("sync:" + JSON.stringify(state, undefined, 4));
-        setPlayers(Object.values(state).map(([player]) => player as unknown as Player));
-      });
-
-      roomChannel.subscribe(async (status: `${REALTIME_SUBSCRIBE_STATES}`) => {
-        if (status === REALTIME_SUBSCRIBE_STATES.SUBSCRIBED) {
-          const resp: RealtimeChannelSendResponse = await roomChannel.track({ user_id: userId, name, playerType });
-
-          if (resp === "ok") {
-            console.log("Subscribed");
-            roomChannelRef.current = roomChannel;
-          } else {
-            router.push(`/pong`);
-          }
-        }
-      });
-    }
-
-    // Must properly remove subscribed channel
-    return () => {
-      roomChannel && supabaseClient.removeChannel(roomChannel);
-      roomChannelRef.current = undefined;
-    };
-
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [roomId, ready]);
-
-  if (!roomId) {
+  if (!roomId || !ourPlayer) {
     return <Loader />;
   }
 
@@ -138,7 +68,9 @@ const Room: NextPage = () => {
                 </>
               ))}
             <Input
-              actions={<Badge color={playerType === PlayerType.HOST ? "red" : "green"}>{playerType}</Badge>}
+              actions={
+                <Badge color={ourPlayer.playerType === PlayerType.HOST ? "red" : "green"}>{ourPlayer.playerType}</Badge>
+              }
               size="tiny"
               icon={<IconUser size={12} />}
               value={name}
