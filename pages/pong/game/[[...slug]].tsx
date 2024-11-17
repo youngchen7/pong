@@ -5,10 +5,11 @@ import { Button, Badge, IconArrowLeft, IconCopy, IconUser, Input } from "@supaba
 
 import Loader from "../../../components/Loader";
 import LatencyBadge from "../../../components/LatencyBadge";
-import { useGame } from "../../../hooks/use-game";
 import { PlayerType, usePlayers } from "../../../hooks/use-players";
 import { useUser } from "../../../hooks/use-user";
-import Pong from "../../../components/pong/Pong";
+import dynamic from "next/dynamic";
+
+const PongWithoutSSR = dynamic(() => import("../../../components/pong/Pong"), { ssr: false });
 
 const Room: NextPage = () => {
   const router = useRouter();
@@ -46,7 +47,7 @@ const Room: NextPage = () => {
             "linear-gradient(to right, gray 1px, transparent 1px),\n    linear-gradient(to bottom, gray 1px, transparent 1px)",
         }}
       />
-      <Pong />
+      <PongWithoutSSR />
       <div className="absolute bottom-5 left-5">
         <div className="flex items-end justify-between">
           <div className="flex flex-col space-y-2">
