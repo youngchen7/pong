@@ -47,7 +47,7 @@ const Room: NextPage = () => {
             "linear-gradient(to right, gray 1px, transparent 1px),\n    linear-gradient(to bottom, gray 1px, transparent 1px)",
         }}
       />
-      <PongWithoutSSR />
+      <PongWithoutSSR roomId={roomId} />
       <div className="absolute bottom-5 left-5">
         <div className="flex items-end justify-between">
           <div className="flex flex-col space-y-2">

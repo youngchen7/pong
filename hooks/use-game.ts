@@ -114,11 +114,10 @@ export function useGame({ roomId }: Params): Game {
   }, [roomId]);
 
   // Listen to changes to the game row in the database.
-  let gameChannel: RealtimeChannel;
   useEffect(() => {
     if (!roomId) return;
     const gameChannel = supabaseClient
-      .channel(`pong_game:${roomId}`)
+      .channel(`pon--game:${roomId}`)
       .on(
         REALTIME_LISTEN_TYPES.POSTGRES_CHANGES,
         {
